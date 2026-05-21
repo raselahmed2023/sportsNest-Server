@@ -53,7 +53,21 @@ async function run() {
       res.json(result)
     })
 
-   
+    // booking-data
+
+    app.post('/bookings', async (req, res) => {
+      const bookingData = req.body
+      const result = await bookingsCollection.insertOne(bookingData)
+      res.json(result)
+    })
+
+
+    app.get('/bookings', async (req, res) => {
+      const { email } = req.query
+      const query = email ? { user_email: email } : {}
+      const bookings = await bookingsCollection.find(query).toArray()
+      res.json(bookings)
+    })
 
 
     //update and delete manage facilities
