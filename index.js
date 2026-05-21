@@ -1,36 +1,60 @@
 const express = require('express')
-const dontenv=require('dotenv')
+const dotenv = require('dotenv')
+const cors = require('cors')
+const { MongoClient, ServerApiVersion } = require('mongodb')
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
-dontenv.config()
-const uri =process.env.MONGODB_URI;
-
+dotenv.config()
 
 const app = express()
-const PORT=process.env.PORT
+const PORT = process.env.PORT || 8000
+const uri = process.env.MONGODB_URI
 
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+app.use(cors({
+  origin: 'http://localhost:3000',
+  credentials: true,
+}))
+app.use(express.json())
+
+// ✅ এটা run() এর বাইরে
+app.get('/', (req, res) => {
+  res.json({ message: 'SportNest server running ✅' })
+})
+
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
   }
-});
+})
+
 async function run() {
   try {
-    // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
-    // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
-  } finally {
-    // Ensures that the client will close when you finish/error
-    await client.close();
+    await client.connect()
+
+    const db = client.db('sportsNest')
+    const facilitiesCollection = db.collection('facilities')
+
+    app.post('/facilities', async (req, res) => {
+      const facilityData = req.body
+      const result = await facilitiesCollection.insertOne(facilityData)
+      res.json(result)
+    })
+
+    app.get('/facilities', async (req, res) => {
+      const facilities = await facilitiesCollection.find({}).toArray()
+      res.json(facilities)
+    })
+
+    console.log('✅ Connected to MongoDB!')
+
+  } catch (err) {
+    console.error(err)
   }
 }
-run().catch(console.dir);
 
-app.listen(PORT,()=>{
+run()
 
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`)
 })
