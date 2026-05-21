@@ -1,9 +1,9 @@
 const express = require('express')
-const dotenv = require('dotenv')
+const dontenv = require('dotenv')
 const cors = require('cors')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb')
 
-dotenv.config()
+dontenv.config()
 
 const app = express()
 const PORT = process.env.PORT || 8000
@@ -17,7 +17,7 @@ app.use(express.json())
 
 
 app.get('/', (req, res) => {
-  res.json({ message: 'SportNest server running ✅' })
+  res.json({ message: 'SportNest server running ' })
 })
 
 const client = new MongoClient(uri, {
@@ -31,8 +31,8 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     await client.connect()
-
     const db = client.db('sportsNest')
+
     const facilitiesCollection = db.collection('facilities')
     const bookingsCollection = db.collection('bookings')
 
@@ -61,7 +61,6 @@ async function run() {
       res.json(result)
     })
 
-
     app.get('/bookings', async (req, res) => {
       const { email } = req.query
       const query = email ? { user_email: email } : {}
@@ -69,24 +68,26 @@ async function run() {
       res.json(bookings)
     })
 
+    app.delete('/bookings/:id', async (req, res) => {
+      const id = req.params.id;
+      const result = await bookingsCollection.deleteOne({ _id: new ObjectId(id) });
+      res.json(result);
+    })
+
 
     //update and delete manage facilities
 
     app.get("/facilities", async (req, res) => {
       const email = req.query.email;
-      const facilities = await facilitiesCollection
-        .find({ owner_email: email })
-        .toArray();
-      res.send(facilities);
+      const facilities = await facilitiesCollection.find({ owner_email: email }).toArray();
+      res.json(facilities);
     });
 
     app.delete("/facilities/:id", async (req, res) => {
       const id = req.params.id;
-
-      const result = await facilitiesCollection.deleteOne({
-        _id: new ObjectId(id),
+      const result = await facilitiesCollection.deleteOne({_id: new ObjectId(id),
       });
-      res.send(result);
+      res.json(result);
     });
 
 
@@ -99,5 +100,5 @@ async function run() {
 run()
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`)
+  console.log(` Server running on port ${PORT}`)
 })
