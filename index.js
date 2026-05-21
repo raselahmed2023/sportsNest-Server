@@ -53,7 +53,7 @@ async function run() {
       res.json(result)
     })
 
-    // booking-data
+    // booking data
 
     app.post('/bookings', async (req, res) => {
       const bookingData = req.body
@@ -74,7 +74,6 @@ async function run() {
       res.json(result);
     })
 
-
     //update and delete manage facilities
 
     app.get("/facilities", async (req, res) => {
@@ -85,12 +84,19 @@ async function run() {
 
     app.delete("/facilities/:id", async (req, res) => {
       const id = req.params.id;
-      const result = await facilitiesCollection.deleteOne({_id: new ObjectId(id),
-      });
+      const result = await facilitiesCollection.deleteOne({ _id: new ObjectId(id) });
       res.json(result);
     });
 
-
+    app.put("/facilities/:id", async (req, res) => {
+      const id = req.params.id;
+      const updateData=req.body;
+      const result = await facilitiesCollection.updateOne({ _id: new ObjectId(id)},
+    {
+       $set:updateData
+    });
+      res.json(result);
+    });
 
   } catch (err) {
     console.error(err)
