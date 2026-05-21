@@ -1,7 +1,7 @@
 const express = require('express')
 const dotenv = require('dotenv')
 const cors = require('cors')
-const { MongoClient, ServerApiVersion } = require('mongodb')
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb')
 
 dotenv.config()
 
@@ -15,7 +15,7 @@ app.use(cors({
 }))
 app.use(express.json())
 
-// ✅ এটা run() এর বাইরে
+
 app.get('/', (req, res) => {
   res.json({ message: 'SportNest server running ✅' })
 })
@@ -34,6 +34,7 @@ async function run() {
 
     const db = client.db('sportsNest')
     const facilitiesCollection = db.collection('facilities')
+    const bookingsCollection = db.collection('bookings')
 
     app.post('/facilities', async (req, res) => {
       const facilityData = req.body
@@ -46,7 +47,35 @@ async function run() {
       res.json(facilities)
     })
 
-    console.log('✅ Connected to MongoDB!')
+    app.get('/facility/:id', async (req, res) => {
+      const { id } = req.params
+      const result = await facilitiesCollection.findOne({ _id: new ObjectId(id) })
+      res.json(result)
+    })
+
+   
+
+
+    //update and delete manage facilities
+
+    app.get("/facilities", async (req, res) => {
+      const email = req.query.email;
+      const facilities = await facilitiesCollection
+        .find({ owner_email: email })
+        .toArray();
+      res.send(facilities);
+    });
+
+    app.delete("/facilities/:id", async (req, res) => {
+      const id = req.params.id;
+
+      const result = await facilitiesCollection.deleteOne({
+        _id: new ObjectId(id),
+      });
+      res.send(result);
+    });
+
+
 
   } catch (err) {
     console.error(err)
