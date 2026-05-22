@@ -1,5 +1,4 @@
 const express = require('express')
-const auth = require("./auth")
 const dotenv = require('dotenv')
 const cors = require('cors')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb')
@@ -10,22 +9,9 @@ const app = express()
 const PORT = process.env.PORT || 8000
 const uri = process.env.MONGODB_URI
 
-app.use(
-  cors({
-    origin: [
-      "https://sports-nest-gules.vercel.app",
-      "http://localhost:3000",
-    ],
-    credentials: true,
-  })
-)
+app.use(cors())
 
 app.use(express.json())
-
-app.all("/api/auth/*", async (req, res) => {
-  return auth.handler(req, res)
-})
-
 
 let createRemoteJWKSet
 let jwtVerify
@@ -38,7 +24,7 @@ async function initJose() {
   jwtVerify = jose.jwtVerify
 
   JWKS = createRemoteJWKSet(
-    new URL(`${process.env.BETTER_AUTH_URL}/api/auth/jwks`)
+    new URL(`${process.env.CLIENT_URL}/api/auth/jwks`)
   )
 }
 
@@ -158,7 +144,7 @@ async function run() {
   }
 }
 run()
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// app.listen(PORT, () => {
+//   console.log(`Server running on port ${PORT}`);
+// });
 module.exports = app
