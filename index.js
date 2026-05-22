@@ -48,33 +48,43 @@ const client = new MongoClient(uri, {
   }
 })
 
-const db = client.db('sportsNest')
-const facilitiesCollection = db.collection('facilities')
-const bookingsCollection = db.collection('bookings')
+let isConnected = false
 
-// Connect once
-client.connect().then(() => console.log("MongoDB Connected")).catch(console.error)
+async function connectDB() {
+  if (!isConnected) {
+    await client.connect()
+    isConnected = true
+  }
+  return {
+    facilitiesCollection: client.db('sportsNest').collection('facilities'),
+    bookingsCollection: client.db('sportsNest').collection('bookings'),
+  }
+}
 
 app.get('/', (req, res) => {
   res.json({ message: 'SportNest server running' })
 })
 
 app.get('/facilities', async (req, res) => {
+  const { facilitiesCollection } = await connectDB()
   const facilities = await facilitiesCollection.find({}).toArray()
   res.json(facilities)
 })
 
 app.get('/facility/:id', async (req, res) => {
+  const { facilitiesCollection } = await connectDB()
   const result = await facilitiesCollection.findOne({ _id: new ObjectId(req.params.id) })
   res.json(result)
 })
 
 app.post('/facilities', verifyToken, async (req, res) => {
+  const { facilitiesCollection } = await connectDB()
   const result = await facilitiesCollection.insertOne(req.body)
   res.json(result)
 })
 
 app.put('/facilities/:id', verifyToken, async (req, res) => {
+  const { facilitiesCollection } = await connectDB()
   const result = await facilitiesCollection.updateOne(
     { _id: new ObjectId(req.params.id), owner_email: req.user.email },
     { $set: req.body }
@@ -83,6 +93,7 @@ app.put('/facilities/:id', verifyToken, async (req, res) => {
 })
 
 app.delete('/facilities/:id', verifyToken, async (req, res) => {
+  const { facilitiesCollection } = await connectDB()
   const result = await facilitiesCollection.deleteOne(
     { _id: new ObjectId(req.params.id), owner_email: req.user.email }
   )
@@ -90,21 +101,25 @@ app.delete('/facilities/:id', verifyToken, async (req, res) => {
 })
 
 app.get('/my-facilities', verifyToken, async (req, res) => {
+  const { facilitiesCollection } = await connectDB()
   const facilities = await facilitiesCollection.find({ owner_email: req.user.email }).toArray()
   res.json(facilities)
 })
 
 app.post('/bookings', verifyToken, async (req, res) => {
+  const { bookingsCollection } = await connectDB()
   const result = await bookingsCollection.insertOne(req.body)
   res.json(result)
 })
 
 app.get('/bookings', verifyToken, async (req, res) => {
+  const { bookingsCollection } = await connectDB()
   const bookings = await bookingsCollection.find({ user_email: req.user.email }).toArray()
   res.json(bookings)
 })
 
 app.delete('/bookings/:id', verifyToken, async (req, res) => {
+  const { bookingsCollection } = await connectDB()
   const result = await bookingsCollection.deleteOne({ _id: new ObjectId(req.params.id) })
   res.json(result)
 })
