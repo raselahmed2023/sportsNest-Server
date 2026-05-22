@@ -13,8 +13,22 @@ app.use(cors())
 
 app.use(express.json())
 
-const { createRemoteJWKSet, jwtVerify } = require("jose");
-const JWKS = createRemoteJWKSet(new URL(`${process.env.CLIENT_URL}/api/auth/jwks`));
+let createRemoteJWKSet
+let jwtVerify
+let JWKS
+
+async function initJose() {
+  const jose = await import("jose")
+
+  createRemoteJWKSet = jose.createRemoteJWKSet
+  jwtVerify = jose.jwtVerify
+
+  JWKS = createRemoteJWKSet(
+    new URL(`${process.env.CLIENT_URL}/api/auth/jwks`)
+  )
+}
+
+initJose()
 
 const verifyToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -51,7 +65,7 @@ async function run() {
     const bookingsCollection = db.collection('bookings')
 
 
-    app.post('/facilities',verifyToken, async (req, res) => {
+    app.post('/facilities', verifyToken, async (req, res) => {
       const facilityData = req.body
       const result = await facilitiesCollection.insertOne(facilityData)
       res.json(result)
@@ -71,7 +85,7 @@ async function run() {
     })
 
 
-    app.post('/bookings',verifyToken, async (req, res) => {
+    app.post('/bookings', verifyToken, async (req, res) => {
       const bookingData = req.body
       const result = await bookingsCollection.insertOne(bookingData)
       res.json(result)
