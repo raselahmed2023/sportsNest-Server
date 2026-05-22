@@ -1,5 +1,4 @@
 const express = require('express')
-const jwt = require("jsonwebtoken");
 const dotenv = require('dotenv')
 const cors = require('cors')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb')
@@ -18,32 +17,25 @@ app.use(cors({
 app.use(express.json())
 
 
-const verifyToken = (req, res, next) => {
+
+const { createRemoteJWKSet, jwtVerify } = require("jose");
+const JWKS = createRemoteJWKSet(
+  new URL("http://localhost:3000/api/auth/jwks")
+);
+
+const verifyToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return res.status(401).send({ message: "Unauthorized" });
-  }
+  if (!authHeader) return res.status(401).send({ message: "Unauthorized" });
   const token = authHeader.split(" ")[1];
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if (err) {
-      return res.status(401).send({ message: "Invalid Token" });
-    }
-    req.user = decoded;
+  try {
+    const { payload } = await jwtVerify(token, JWKS);
+    req.user = payload;
     next();
-  });
+  } catch (err) {
+    return res.status(401).send({ message: "Invalid Token" });
+  }
 };
 
-
-app.post("/jwt", (req, res) => {
-  const user = req.body;
-  const token = jwt.sign(
-    user,
-    process.env.JWT_SECRET,
-    { expiresIn: "7d" }
-  );
-
-  res.send({ token });
-});
 
 app.get('/', (req, res) => {
   res.json({ message: 'SportNest server running' })
@@ -65,14 +57,14 @@ async function run() {
     const facilitiesCollection = db.collection('facilities')
     const bookingsCollection = db.collection('bookings')
 
-   
-    app.post('/facilities', async (req, res) => {
+
+    app.post('/facilities',verifyToken, async (req, res) => {
       const facilityData = req.body
       const result = await facilitiesCollection.insertOne(facilityData)
       res.json(result)
     })
 
-  
+
     app.get('/facilities', async (req, res) => {
       const facilities = await facilitiesCollection.find({}).toArray()
       res.json(facilities)
@@ -85,8 +77,8 @@ async function run() {
       res.json(result)
     })
 
-   
-    app.post('/bookings', async (req, res) => {
+
+    app.post('/bookings',verifyToken, async (req, res) => {
       const bookingData = req.body
       const result = await bookingsCollection.insertOne(bookingData)
       res.json(result)
@@ -100,28 +92,29 @@ async function run() {
     })
 
 
-    app.delete('/bookings/:id', async (req, res) => {
+    app.delete('/bookings/:id', verifyToken, async (req, res) => {
+      const email = req.user.email
       const id = req.params.id
-      const result = await bookingsCollection.deleteOne({ _id: new ObjectId(id)})
+      const result = await bookingsCollection.deleteOne({ _id: new ObjectId(id) })
       res.json(result)
     })
 
-   
+
     app.get("/my-facilities", verifyToken, async (req, res) => {
       const email = req.user.email
       const facilities = await facilitiesCollection.find({ owner_email: email }).toArray()
       res.json(facilities)
     })
 
-   
+
     app.delete("/facilities/:id", verifyToken, async (req, res) => {
       const email = req.user.email
       const id = req.params.id
-      const result = await facilitiesCollection.deleteOne({_id: new ObjectId(id),owner_email: email,})
+      const result = await facilitiesCollection.deleteOne({ _id: new ObjectId(id), owner_email: email, })
       res.json(result)
     })
 
-   
+
     app.put("/facilities/:id", verifyToken, async (req, res) => {
       const email = req.user.email
       const id = req.params.id
