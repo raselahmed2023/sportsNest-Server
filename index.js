@@ -15,7 +15,7 @@ app.use(cors({
 
 app.use(express.json())
 
-// Jose setup
+
 let JWKS
 async function initJose() {
   const jose = await import("jose")
@@ -39,7 +39,7 @@ const verifyToken = async (req, res, next) => {
   }
 }
 
-// MongoDB
+
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
