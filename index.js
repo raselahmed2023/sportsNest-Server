@@ -9,13 +9,7 @@ const app = express()
 const PORT = process.env.PORT || 8000
 const uri = process.env.MONGODB_URI
 
-app.use(cors({
-  origin: [
-    "http://localhost:3000",
-    "https://sports-nest-gules.vercel.app"
-  ],
-  credentials: true
-}));
+app.use(cors())
 
 app.use(express.json())
 
@@ -82,8 +76,6 @@ async function run() {
       const facilities = await facilitiesCollection.find({}).toArray()
       res.json(facilities)
     })
-
-    
 
 
     app.get('/facility/:id', async (req, res) => {
@@ -152,5 +144,7 @@ async function run() {
   }
 }
 run()
-
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 module.exports = app
