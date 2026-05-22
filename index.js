@@ -16,12 +16,8 @@ app.use(cors({
 
 app.use(express.json())
 
-
-
 const { createRemoteJWKSet, jwtVerify } = require("jose");
-const JWKS = createRemoteJWKSet(
-  new URL("http://localhost:3000/api/auth/jwks")
-);
+const JWKS = createRemoteJWKSet(new URL(`${process.env.CLIENT_URL}/api/auth/jwks`));
 
 const verifyToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -52,7 +48,7 @@ const client = new MongoClient(uri, {
 async function run() {
 
   try {
-    await client.connect()
+    // await client.connect()
     const db = client.db('sportsNest')
     const facilitiesCollection = db.collection('facilities')
     const bookingsCollection = db.collection('bookings')
