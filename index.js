@@ -83,6 +83,8 @@ async function run() {
       res.json(facilities)
     })
 
+    
+
 
     app.get('/facility/:id', async (req, res) => {
       const id = req.params.id
@@ -150,8 +152,8 @@ async function run() {
   }
 }
 run()
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// app.listen(PORT, () => {
+//   console.log(`Server running on port ${PORT}`);
+// });
 
 module.exports = app
