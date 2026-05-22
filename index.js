@@ -9,7 +9,13 @@ const app = express()
 const PORT = process.env.PORT || 8000
 const uri = process.env.MONGODB_URI
 
-app.use(cors())
+app.use(cors({
+  origin: [
+    "http://localhost:3000",
+    "https://sports-nest-gules.vercel.app"
+  ],
+  credentials: true
+}));
 
 app.use(express.json())
 
