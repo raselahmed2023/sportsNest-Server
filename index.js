@@ -1,4 +1,5 @@
 const express = require('express')
+const auth = require("./auth")
 const dotenv = require('dotenv')
 const cors = require('cors')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb')
@@ -21,6 +22,11 @@ app.use(
 
 app.use(express.json())
 
+app.all("/api/auth/*", async (req, res) => {
+  return auth.handler(req, res)
+})
+
+
 let createRemoteJWKSet
 let jwtVerify
 let JWKS
@@ -32,7 +38,7 @@ async function initJose() {
   jwtVerify = jose.jwtVerify
 
   JWKS = createRemoteJWKSet(
-    new URL(`${process.env.CLIENT_URL}/api/auth/jwks`)
+    new URL(`${process.env.BETTER_AUTH_URL}/api/auth/jwks`)
   )
 }
 
