@@ -8,6 +8,7 @@ dotenv.config();
 
 const app = express();
 const uri = process.env.MONGODB_URI;
+const port = process.env.PORT;
 
 app.use(
   cors({
@@ -21,15 +22,15 @@ app.use(cookieParser());
 
 let JWKS;
 
-async function initJose() {
+const initJose = async () => {
   const jose = await import("jose");
 
   JWKS = jose.createRemoteJWKSet(
     new URL(`${process.env.CLIENT_URL}/api/auth/jwks`)
   );
-}
+};
 
-initJose();
+const jwksReady = initJose();
 
 const getTokenFromRequest = (req) => {
   const authHeader = req.headers.authorization;
@@ -53,13 +54,15 @@ const verifyToken = async (req, res, next) => {
   }
 
   try {
+    await jwksReady;
+
     const jose = await import("jose");
     const { payload } = await jose.jwtVerify(token, JWKS);
 
     req.user = payload;
     next();
-  } catch (err) {
-    console.error("JWT verification failed:", err.message);
+  } catch (error) {
+    console.error("JWT verification failed:", error.message);
     return res.status(401).json({ message: "Invalid Token" });
   }
 };
@@ -90,6 +93,14 @@ async function connectDB() {
 
 const isValidObjectId = (id) => ObjectId.isValid(id);
 
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+  path: "/",
+};
+
 app.get("/", (req, res) => {
   res.json({
     message: "SportNest server running",
@@ -97,7 +108,45 @@ app.get("/", (req, res) => {
   });
 });
 
-// Public: all facilities with search and filter
+// Set JWT in HTTPOnly cookie
+app.post("/auth/set-token", async (req, res) => {
+  const { token } = req.body;
+
+  if (!token) {
+    return res.status(400).json({ message: "Token is required" });
+  }
+
+  try {
+    await jwksReady;
+
+    const jose = await import("jose");
+    const { payload } = await jose.jwtVerify(token, JWKS);
+
+    res.cookie("token", token, cookieOptions);
+
+    res.json({
+      success: true,
+      email: payload.email,
+    });
+  } catch (error) {
+    console.error("Set token failed:", error.message);
+    res.status(401).json({ message: "Invalid token" });
+  }
+});
+
+// Clear JWT cookie on logout
+app.post("/auth/logout", (req, res) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    path: "/",
+  });
+
+  res.json({ success: true });
+});
+
+// Public: get facilities with search and filter
 app.get("/facilities", async (req, res) => {
   try {
     const { facilitiesCollection } = await connectDB();
@@ -110,7 +159,11 @@ app.get("/facilities", async (req, res) => {
     }
 
     if (type) {
-      const types = type.split(",").map((item) => item.trim().toLowerCase());
+      const types = type
+        .split(",")
+        .map((item) => item.trim().toLowerCase())
+        .filter(Boolean);
+
       query.facility_type = { $in: types };
     }
 
@@ -126,7 +179,7 @@ app.get("/facilities", async (req, res) => {
   }
 });
 
-// Public: single facility
+// Public: get single facility
 app.get("/facility/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -152,7 +205,7 @@ app.get("/facility/:id", async (req, res) => {
   }
 });
 
-// Private: create facility
+// Private: add facility
 app.post("/facilities", verifyToken, async (req, res) => {
   try {
     const { facilitiesCollection } = await connectDB();
@@ -174,7 +227,6 @@ app.post("/facilities", verifyToken, async (req, res) => {
     };
 
     const result = await facilitiesCollection.insertOne(facility);
-
     res.json(result);
   } catch (error) {
     console.error("Failed to create facility:", error);
@@ -327,7 +379,7 @@ app.get("/bookings", verifyToken, async (req, res) => {
   }
 });
 
-// Private: cancel/delete own booking
+// Private: cancel own booking
 app.delete("/bookings/:id", verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -365,8 +417,6 @@ app.delete("/bookings/:id", verifyToken, async (req, res) => {
     res.status(500).json({ message: "Failed to cancel booking" });
   }
 });
-
-const port = process.env.PORT;
 
 app.listen(port, () => {
   console.log(`SportNest server running on port ${port}`);
