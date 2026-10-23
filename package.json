@@ -4,8 +4,8 @@
   "description": "Express and MongoDB backend for SportNest sports facility booking platform.",
   "main": "index.js",
   "scripts": {
-    "start": "node api.js && node index.js",
-    "dev": "node api.js && nodemon index.js"
+    "start": "node init && node index.js",
+    "dev": "node init && nodemon index.js"
   },
   "keywords": [
     "sportnest",
